@@ -1,0 +1,46 @@
+---
+title: "Scoring the SF-36"
+author: "Dom Grisafe"
+date: "12/11/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#R packages
+library(readxl)
+library(dplyr)
+
+#set working directory
+knitr::opts_knit$set(root.dir = normalizePath("/Users/USC/Desktop/SF-36"))
+#show working directory path
+getwd()
+```
+
+#SF-36
+The [SF-36](https://www.rand.org/health/surveys_tools/mos/36-item-short-form/survey-instrument.html), produced by RAND, is one of the most common instruments for measuring quality of life. It is frustrating to learn to manually score the SF-36, when it is clear that numerous researchers must be recoding the survey each time. This is my attempt to automate the administration and scoring of the SF-36.
+
+##Google Form Version of SF-36
+Here is the [Google Form version of the SF-36](https://goo.gl/forms/DYGom6XPEv2HlANA3). I do not know how to make a downloadable file of this form I will update the link once I lean to do so.  
+Google forms eliminate data entry steps, make the data collection process more repeatable, and can save money on unnecessary administrative costs. Google forms are not commonly used in academia despite [commentaries encouraging the use of Google Forms in health and social sciences](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3884902/).
+
+##Loading the SF-36 from Google Form to Excel to R
+Once data has been collected using the Google Form, download the file as an excel document. This can then be loaded into R using the [readxl](https://www.rdocumentation.org/packages/readxl/versions/0.1.1) package. 
+```{r echo = TRUE}
+#import from excel to R using readxl
+data <- read_excel("DataSF36.xlsx")
+
+#look at item variables and number of observations
+glimpse(data)
+```
+
+##Recoding the SF-36
+RAND provides [Scoring Instructions](https://www.rand.org/health/surveys_tools/mos/36-item-short-form/scoring.html). [SAS programs](https://www.rand.org/pubs/drafts/DRU1437.html) have been published to score the SF-36 automatically, which will be used as a template for scoring the survey in R. All variables should be renamed and certain items must be reversed.
+```{r recode}
+#rename the columns
+col <- 
+#figure out how to score from Ron Klein instructions
+```
+#References
+Figure out how to write an endnote [bibliography](https://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html) in Rmd.
