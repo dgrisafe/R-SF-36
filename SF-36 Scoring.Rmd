@@ -296,7 +296,11 @@ test <- summarize(subScale8,
           meanMH = mean(EMOT5), sdMH = sd(EMOT5)
           )
 
-  #make this into a tibble of each subscale (rows) by statistics mean and sd.
+#make this into a tibble of each subscale (rows) by statistics mean and sd. Figure out naming
+
+as.numeric(test[1,]) %>% 
+  matrix(ncol = 2, nrow = 8, byrow = T) %>% 
+  as_tibble()
 ```
 
 
