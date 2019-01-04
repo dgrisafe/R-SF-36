@@ -235,11 +235,12 @@ I22SF &lt;- select(data, ptid, I22)
 
 ##recode, reverse 5-point items to 0-100 scale
 RFIVEPT[,2:7] &lt;- sapply(X = RFIVEPT[,2:7], FUN = function(x) {
-  x[x == 1] &lt;- 100;
-  x[x == 2] &lt;- 75;
-  x[x == 3] &lt;- 50;
-  x[x == 4] &lt;- 25;
-  x[x == 5] &lt;- 0;
+  x[x == 1] &lt;- 100
+  x[x == 2] &lt;- 75
+  x[x == 3] &lt;- 50
+  x[x == 4] &lt;- 25
+  x[x == 5] &lt;- 0
+  x
   })
 
 ##recode 3-point items to 0-100 scale
@@ -247,12 +248,14 @@ THREEPT[,2:11] &lt;- sapply(X = THREEPT[,2:11], FUN = function(x) {
   x[x == 1] &lt;- 0
   x[x == 2] &lt;- 50
   x[x == 3] &lt;- 100
+  x
   })
 
 ##recode 2-point items to 0-100 scale
 TWOPT[,2:8] &lt;- sapply(X = TWOPT[,2:8], FUN = function(x) {
   x[x == 1] &lt;- 0
   x[x == 2] &lt;- 100
+  x
   })
 
 ##recode, reverse 6-point items to 0-100 scale
@@ -263,6 +266,7 @@ RSIXPT[,2:6] &lt;- sapply(X = RSIXPT[,2:6], FUN = function(x) {
   x[x == 4] &lt;- 40
   x[x == 5] &lt;- 20
   x[x == 6] &lt;- 0
+  x
   })
 
 ##recode 6-point items to 0-100 scale
@@ -273,6 +277,7 @@ SIXPT[,2:6] &lt;- sapply(X = SIXPT[,2:6], FUN = function(x) {
   x[x == 4] &lt;- 60
   x[x == 5] &lt;- 80
   x[x == 6] &lt;- 100
+  x
   })
 
 ##recode 5-point items to 0-100 scale
@@ -282,6 +287,7 @@ FIVEPT[,2:4] &lt;- sapply(X = FIVEPT[,2:4], FUN = function(x) {
   x[x == 3] &lt;- 50
   x[x == 4] &lt;- 75
   x[x == 5] &lt;- 100
+  x
   })
 
 #*****************************************************************;
@@ -429,14 +435,33 @@ data0100 &lt;- mutate(data0100,
 subScale8 &lt;- select(data0100, ptid,
                     PHYFUN10,ROLEP4,PAIN2,GENH5,
                     ENFAT4,SOCFUN2,ROLEE3,EMOT5)
-summarize(subScale8, 
-          meanPF = mean(PHYFUN10), sdPF = sd(PHYFUN10))</code></pre>
-<pre><code>## # A tibble: 1 x 2
-##   meanPF  sdPF
-##    &lt;dbl&gt; &lt;dbl&gt;
-## 1    100     0</code></pre>
-<pre class="r"><code>subScale8$PHYFUN10</code></pre>
-<pre><code>## [1] 100 100 100 100 100 100 100 100 100</code></pre>
+test &lt;- summarize(subScale8, 
+          meanPF = mean(PHYFUN10), sdPF = sd(PHYFUN10),
+          meanRP = mean(ROLEP4), sdRP = sd(ROLEP4),
+          meanBP = mean(PAIN2), sdBP = sd(PAIN2),
+          meanGH = mean(GENH5), sdGH = sd(GENH5),
+          meanVT = mean(ENFAT4), sdVT = sd(ENFAT4),
+          meanSF = mean(SOCFUN2), sdSF = sd(SOCFUN2),
+          meanRE = mean(ROLEE3), sdRE = sd(ROLEE3),
+          meanMH = mean(EMOT5), sdMH = sd(EMOT5)
+          )
+
+#make this into a tibble of each subscale (rows) by statistics mean and sd. Figure out naming
+
+as.numeric(test[1,]) %&gt;% 
+  matrix(ncol = 2, nrow = 8, byrow = T) %&gt;% 
+  as_tibble()</code></pre>
+<pre><code>## # A tibble: 8 x 2
+##      V1    V2
+##   &lt;dbl&gt; &lt;dbl&gt;
+## 1  68.9  27.4
+## 2  44.4  41.0
+## 3  64.7  30.8
+## 4  50    28.1
+## 5  51.7  21.5
+## 6  47.2  24.0
+## 7  40.7  43.4
+## 8  62.7  20.6</code></pre>
 </div>
 <div id="comparing-sf-36-scores-of-sample-to-us" class="section level2">
 <h2>Comparing SF-36 Scores of Sample to US</h2>
