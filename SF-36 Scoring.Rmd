@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(readxl)
 library(dplyr)
 library(stringr)
+library(tidyverse)
 
 #set working directory
 knitr::opts_knit$set(root.dir = normalizePath("/Users/USC/Desktop/SF-36"))
@@ -281,11 +282,15 @@ data0100 <- mutate(data0100,
 ##Calculating Standardized Component Scores: Physical and Mental Composites
 The [Australian Longitudinal Study on Women's Health](https://www.alswh.org.au/) provides [instructions on how to calculate the physical and mental composite scores](http://www.alswh.org.au/images/content/pdf/InfoData/Data_Dictionary_Supplement/DDSSection2SF36.pdf) of the SF-36 when all of the 8 subscales are available.
 ```{r}
+# make vectors of scale names and abbreviations
+SF36_scales <- c("Physical Functioning", "Role Physical", "Bodily Pain", "General Health", "Vitality", "Social Functioning", "Role Emotional", "Mental Health")
+SF36_abbrev <- c("PF", "RP", "BP", "GH", "VT", "SF", "RE", "MH")
+
 #select 8 SF-36 subscale scores
 subScale8 <- select(data0100, ptid,
                     PHYFUN10,ROLEP4,PAIN2,GENH5,
                     ENFAT4,SOCFUN2,ROLEE3,EMOT5)
-test <- summarize(subScale8, 
+sumScale8 <- summarize(subScale8, 
           meanPF = mean(PHYFUN10), sdPF = sd(PHYFUN10),
           meanRP = mean(ROLEP4), sdRP = sd(ROLEP4),
           meanBP = mean(PAIN2), sdBP = sd(PAIN2),
@@ -296,15 +301,96 @@ test <- summarize(subScale8,
           meanMH = mean(EMOT5), sdMH = sd(EMOT5)
           )
 
-#make this into a tibble of each subscale (rows) by statistics mean and sd. Figure out naming
+# set subscale column names to abbreviations
+colnames(subScale8) <- c("ptid", SF36_abbrev)
 
-as.numeric(test[1,]) %>% 
+# make this into a tibble of each subscale (rows) by statistics mean and sd. Figure out naming
+finalTable <- as.numeric(sumScale8[1,]) %>% 
   matrix(ncol = 2, nrow = 8, byrow = T) %>% 
   as_tibble()
+
+# add scale names
+finalTable <- finalTable %>% 
+  add_column(SF36_scales)
+
+# add scale abbreviations
+finalTable <- finalTable %>% 
+  add_column(SF36_abbrev)
+
+# name columns and reorder columns
+colnames(finalTable) <- c("mean", "stdDev", "Scale", "Abbreviation")
+
+# formatted final table
+finalTable <- finalTable %>% select(Scale, Abbreviation, mean, stdDev)
 ```
 
 
-##Comparing SF-36 Scores of Sample to US 
+##Comparing SF-36 Scores of Sample to US
+Use [scale scores standardized from the general US population](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3582698/) to calculate Physical Composite Score (PCS) and Mental Composite Score (MCS).
+```{r compScore}
+# import standard US general population scores of the SF-36
+ SF36_GenPopUS <- read_excel("SF36_GenPopUS.xlsx", sheet = 1)
+
+
+## This produces an average PCS and MCS for the entire sample, but we need to calculate for each individual first
+  
+  # select only the 8 subscales from the Gen US Population SF-36 data
+  SF36_8Scales <- SF36_GenPopUS %>% slice(1:8)
+  
+  # calculate standardized scores of the 8 scales for the sample
+  finalCSTable <- finalTable %>% 
+    mutate(stdScale = (mean - SF36_8Scales$Mean)/SF36_8Scales$SD)
+  
+  # calculate the PCS and MCS
+  PCS <- finalCSTable %>% slice(1:4) %>% summarize(sum(stdScale) * 10 + 50) %>% as.numeric()
+  MCS <- finalCSTable %>% slice(5:8) %>% summarize(sum(stdScale) * 10 + 50) %>% as.numeric()
+  
+  
+## Calculate PCS and MCS for each individual
+
+  # calculate standardized scores for each participant
+  std_subScale8 <- subScale8 %>% 
+    mutate(
+      stdPF = (PF - as.numeric(SF36_GenPopUS[1,3])) / as.numeric(SF36_GenPopUS[1,5]),
+      stdRP = (RP - as.numeric(SF36_GenPopUS[2,3])) / as.numeric(SF36_GenPopUS[2,5]),
+      stdBP = (BP - as.numeric(SF36_GenPopUS[3,3])) / as.numeric(SF36_GenPopUS[3,5]),
+      stdGH = (GH - as.numeric(SF36_GenPopUS[4,3])) / as.numeric(SF36_GenPopUS[4,5]),
+      stdVT = (VT - as.numeric(SF36_GenPopUS[5,3])) / as.numeric(SF36_GenPopUS[5,5]),
+      stdSF = (SF - as.numeric(SF36_GenPopUS[6,3])) / as.numeric(SF36_GenPopUS[6,5]),
+      stdRE = (RE - as.numeric(SF36_GenPopUS[7,3])) / as.numeric(SF36_GenPopUS[7,5]),
+      stdMH = (MH - as.numeric(SF36_GenPopUS[8,3])) / as.numeric(SF36_GenPopUS[8,5])
+      )
+
+  # calculate PCS and MCS for each participant
+  std_subScale8 <- std_subScale8 %>% 
+    mutate(
+      PCS = (stdPF + stdRP + stdBP + stdGH) * 10 + 50,
+      MCS = (stdVT + stdSF + stdRE + stdMH) * 10 + 50
+    )
+  
+  
+# calculate PCS and MCS averages for all participants
+  tableCS <- std_subScale8 %>% summarize(
+    meanPCS = mean(PCS), sdPCS = sd(PCS),
+    meanMCS = mean(MCS), sdMCS = sd(MCS)
+  )
+  tableCS <- as.numeric(tableCS[1,]) %>% 
+  matrix(ncol = 2, nrow = 2, byrow = T) %>% 
+  as_tibble()
+  # add labels and abbreviations
+  tableCS <- tableCS %>% 
+    add_column(c("Physical Composite Score", "Mental Composite Score"))
+  tableCS <- tableCS %>% 
+    add_column(c("PCS", "MCS"))
+  colnames(tableCS) <- c("mean", "stdDev", "Scale", "Abbreviation")
+  tableCS <- tableCS %>% select(Scale, Abbreviation, mean, stdDev)
+
+
+# add PCS and MCS to finalTable
+  rbind(finalTable, tableCS)
+
+```
+
 
 #References
 Figure out how to write an endnote [bibliography](https://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html) in Rmd.
