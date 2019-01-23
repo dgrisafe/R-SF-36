@@ -15,7 +15,7 @@ library(stringr)
 library(tidyverse)
 
 #set working directory
-knitr::opts_knit$set(root.dir = normalizePath("/Users/USC/Desktop/SF-36"))
+knitr::opts_knit$set(root.dir = normalizePath("/Volumes/GoogleDrive/My Drive/20180528 Deported Veterans Study/SF-36/Data"))
 #show working directory path
 getwd()
 ```
@@ -31,7 +31,7 @@ Google forms eliminate data entry steps, make the data collection process more r
 Once data has been collected using the Google Form, download the file as an excel document. This can then be loaded into R using the [readxl](https://www.rdocumentation.org/packages/readxl/versions/0.1.1) package. 
 ```{r echo = TRUE}
 #import from excel to R using readxl
-data <- read_excel("DataSF36.xlsx")
+data <- read_excel("20190113_36ItemShortFormSurveyInstrument(SF-36)_Responses_Consolidated.xlsx")
 
 #save a record of the original data for reference
 data_orig <- data
@@ -61,6 +61,9 @@ data <- as.data.frame(lapply(data, function(x) {
 
 ##convert data to tible
 data <- tbl_df(data)
+
+# sort by ptid
+data <- data %>% arrange(ptid)
 
 #data_1num <- mutate_all(.tbl = data_1str, .vars = 4:39, function(x) as.numeric())
 
@@ -144,9 +147,9 @@ FIVEPT[,2:4] <- sapply(X = FIVEPT[,2:4], FUN = function(x) {
 
 ##recode sf items to 0-100 scale
 
-###original SF item scores
+##original SF item scores
 before <- I1SF %>%
-  inner_join(I21SF, by = "ptid") %>% 
+  inner_join(I21SF, by = "ptid") %>%
   inner_join(I22SF, by = "ptid")
 
 ###recode item 1 to 0-100 scale
