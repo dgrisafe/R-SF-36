@@ -13,11 +13,7 @@ library(readxl)
 library(dplyr)
 library(stringr)
 library(tidyverse)
-
-#set working directory
-knitr::opts_knit$set(root.dir = normalizePath("/Volumes/GoogleDrive/My Drive/20180528 Deported Veterans Study/SF-36/Data"))
-#show working directory path
-getwd()
+library(xlsx)
 ```
 
 #SF-36
@@ -29,7 +25,10 @@ Google forms eliminate data entry steps, make the data collection process more r
 
 ##Loading the SF-36 from Google Form to Excel to R
 Once data has been collected using the Google Form, download the file as an excel document. This can then be loaded into R using the [readxl](https://www.rdocumentation.org/packages/readxl/versions/0.1.1) package. 
-```{r echo = TRUE}
+```{r echo = FALSE}
+#set working directory where data is located
+setwd("/Volumes/GoogleDrive/My Drive/20180528 Deported Veterans Study/SF-36/Data")
+
 #import from excel to R using readxl
 data <- read_excel("20190113_36ItemShortFormSurveyInstrument(SF-36)_Responses_Consolidated.xlsx")
 
@@ -390,8 +389,18 @@ Use [scale scores standardized from the general US population](https://www.ncbi.
 
 
 # add PCS and MCS to finalTable
-  rbind(finalTable, tableCS)
+  finalComposite <- rbind(finalTable, tableCS)
 
+  
+# set precision on mean and standard deviation columns
+  finalComposite <- finalComposite %>% 
+    mutate(
+      mean = round(mean, digits = 1),
+      stdDev = round(stdDev, digits = 1)
+    )
+  
+# export to excel
+  write.xlsx(finalComposite, "!SF36_CompositeScores.xlsx")
 ```
 
 

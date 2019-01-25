@@ -140,15 +140,7 @@ Google forms eliminate data entry steps, make the data collection process more r
 <div id="loading-the-sf-36-from-google-form-to-excel-to-r" class="section level2">
 <h2>Loading the SF-36 from Google Form to Excel to R</h2>
 <p>Once data has been collected using the Google Form, download the file as an excel document. This can then be loaded into R using the <a href="https://www.rdocumentation.org/packages/readxl/versions/0.1.1">readxl</a> package.</p>
-<pre class="r"><code>#import from excel to R using readxl
-data &lt;- read_excel(&quot;DataSF36.xlsx&quot;)
-
-#save a record of the original data for reference
-data_orig &lt;- data
-
-#look at item variables and number of observations
-glimpse(data)</code></pre>
-<pre><code>## Observations: 9
+<pre><code>## Observations: 14
 ## Variables: 39
 ## $ Timestamp                                                                                                                                                                                                                                                                                                                        &lt;dttm&gt; ...
 ## $ `Participant ID`                                                                                                                                                                                                                                                                                                                 &lt;chr&gt; ...
@@ -211,6 +203,9 @@ data &lt;- as.data.frame(lapply(data, function(x) {
 
 ##convert data to tible
 data &lt;- tbl_df(data)
+
+# sort by ptid
+data &lt;- data %&gt;% arrange(ptid)
 
 #data_1num &lt;- mutate_all(.tbl = data_1str, .vars = 4:39, function(x) as.numeric())
 
@@ -294,9 +289,9 @@ FIVEPT[,2:4] &lt;- sapply(X = FIVEPT[,2:4], FUN = function(x) {
 
 ##recode sf items to 0-100 scale
 
-###original SF item scores
+##original SF item scores
 before &lt;- I1SF %&gt;%
-  inner_join(I21SF, by = &quot;ptid&quot;) %&gt;% 
+  inner_join(I21SF, by = &quot;ptid&quot;) %&gt;%
   inner_join(I22SF, by = &quot;ptid&quot;)
 
 ###recode item 1 to 0-100 scale
@@ -431,11 +426,15 @@ data0100 &lt;- mutate(data0100,
 <div id="calculating-standardized-component-scores-physical-and-mental-composites" class="section level2">
 <h2>Calculating Standardized Component Scores: Physical and Mental Composites</h2>
 <p>The <a href="https://www.alswh.org.au/">Australian Longitudinal Study on Women’s Health</a> provides <a href="http://www.alswh.org.au/images/content/pdf/InfoData/Data_Dictionary_Supplement/DDSSection2SF36.pdf">instructions on how to calculate the physical and mental composite scores</a> of the SF-36 when all of the 8 subscales are available.</p>
-<pre class="r"><code>#select 8 SF-36 subscale scores
+<pre class="r"><code># make vectors of scale names and abbreviations
+SF36_scales &lt;- c(&quot;Physical Functioning&quot;, &quot;Role Physical&quot;, &quot;Bodily Pain&quot;, &quot;General Health&quot;, &quot;Vitality&quot;, &quot;Social Functioning&quot;, &quot;Role Emotional&quot;, &quot;Mental Health&quot;)
+SF36_abbrev &lt;- c(&quot;PF&quot;, &quot;RP&quot;, &quot;BP&quot;, &quot;GH&quot;, &quot;VT&quot;, &quot;SF&quot;, &quot;RE&quot;, &quot;MH&quot;)
+
+#select 8 SF-36 subscale scores
 subScale8 &lt;- select(data0100, ptid,
                     PHYFUN10,ROLEP4,PAIN2,GENH5,
                     ENFAT4,SOCFUN2,ROLEE3,EMOT5)
-test &lt;- summarize(subScale8, 
+sumScale8 &lt;- summarize(subScale8, 
           meanPF = mean(PHYFUN10), sdPF = sd(PHYFUN10),
           meanRP = mean(ROLEP4), sdRP = sd(ROLEP4),
           meanBP = mean(PAIN2), sdBP = sd(PAIN2),
@@ -446,25 +445,102 @@ test &lt;- summarize(subScale8,
           meanMH = mean(EMOT5), sdMH = sd(EMOT5)
           )
 
-#make this into a tibble of each subscale (rows) by statistics mean and sd. Figure out naming
+# set subscale column names to abbreviations
+colnames(subScale8) &lt;- c(&quot;ptid&quot;, SF36_abbrev)
 
-as.numeric(test[1,]) %&gt;% 
+# make this into a tibble of each subscale (rows) by statistics mean and sd. Figure out naming
+finalTable &lt;- as.numeric(sumScale8[1,]) %&gt;% 
   matrix(ncol = 2, nrow = 8, byrow = T) %&gt;% 
-  as_tibble()</code></pre>
-<pre><code>## # A tibble: 8 x 2
-##      V1    V2
-##   &lt;dbl&gt; &lt;dbl&gt;
-## 1  68.9  27.4
-## 2  44.4  41.0
-## 3  64.7  30.8
-## 4  50    28.1
-## 5  51.7  21.5
-## 6  47.2  24.0
-## 7  40.7  43.4
-## 8  62.7  20.6</code></pre>
+  as_tibble()
+
+# add scale names
+finalTable &lt;- finalTable %&gt;% 
+  add_column(SF36_scales)
+
+# add scale abbreviations
+finalTable &lt;- finalTable %&gt;% 
+  add_column(SF36_abbrev)
+
+# name columns and reorder columns
+colnames(finalTable) &lt;- c(&quot;mean&quot;, &quot;stdDev&quot;, &quot;Scale&quot;, &quot;Abbreviation&quot;)
+
+# formatted final table
+finalTable &lt;- finalTable %&gt;% select(Scale, Abbreviation, mean, stdDev)</code></pre>
 </div>
 <div id="comparing-sf-36-scores-of-sample-to-us" class="section level2">
 <h2>Comparing SF-36 Scores of Sample to US</h2>
+<p>Use <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3582698/">scale scores standardized from the general US population</a> to calculate Physical Composite Score (PCS) and Mental Composite Score (MCS).</p>
+<pre class="r"><code># import standard US general population scores of the SF-36
+ SF36_GenPopUS &lt;- read_excel(&quot;SF36_GenPopUS.xlsx&quot;, sheet = 1)
+
+
+## This produces an average PCS and MCS for the entire sample, but we need to calculate for each individual first
+  
+  # select only the 8 subscales from the Gen US Population SF-36 data
+  SF36_8Scales &lt;- SF36_GenPopUS %&gt;% slice(1:8)
+  
+  # calculate standardized scores of the 8 scales for the sample
+  finalCSTable &lt;- finalTable %&gt;% 
+    mutate(stdScale = (mean - SF36_8Scales$Mean)/SF36_8Scales$SD)
+  
+  # calculate the PCS and MCS
+  PCS &lt;- finalCSTable %&gt;% slice(1:4) %&gt;% summarize(sum(stdScale) * 10 + 50) %&gt;% as.numeric()
+  MCS &lt;- finalCSTable %&gt;% slice(5:8) %&gt;% summarize(sum(stdScale) * 10 + 50) %&gt;% as.numeric()
+  
+  
+## Calculate PCS and MCS for each individual
+
+  # calculate standardized scores for each participant
+  std_subScale8 &lt;- subScale8 %&gt;% 
+    mutate(
+      stdPF = (PF - as.numeric(SF36_GenPopUS[1,3])) / as.numeric(SF36_GenPopUS[1,5]),
+      stdRP = (RP - as.numeric(SF36_GenPopUS[2,3])) / as.numeric(SF36_GenPopUS[2,5]),
+      stdBP = (BP - as.numeric(SF36_GenPopUS[3,3])) / as.numeric(SF36_GenPopUS[3,5]),
+      stdGH = (GH - as.numeric(SF36_GenPopUS[4,3])) / as.numeric(SF36_GenPopUS[4,5]),
+      stdVT = (VT - as.numeric(SF36_GenPopUS[5,3])) / as.numeric(SF36_GenPopUS[5,5]),
+      stdSF = (SF - as.numeric(SF36_GenPopUS[6,3])) / as.numeric(SF36_GenPopUS[6,5]),
+      stdRE = (RE - as.numeric(SF36_GenPopUS[7,3])) / as.numeric(SF36_GenPopUS[7,5]),
+      stdMH = (MH - as.numeric(SF36_GenPopUS[8,3])) / as.numeric(SF36_GenPopUS[8,5])
+      )
+
+  # calculate PCS and MCS for each participant
+  std_subScale8 &lt;- std_subScale8 %&gt;% 
+    mutate(
+      PCS = (stdPF + stdRP + stdBP + stdGH) * 10 + 50,
+      MCS = (stdVT + stdSF + stdRE + stdMH) * 10 + 50
+    )
+  
+  
+# calculate PCS and MCS averages for all participants
+  tableCS &lt;- std_subScale8 %&gt;% summarize(
+    meanPCS = mean(PCS), sdPCS = sd(PCS),
+    meanMCS = mean(MCS), sdMCS = sd(MCS)
+  )
+  tableCS &lt;- as.numeric(tableCS[1,]) %&gt;% 
+  matrix(ncol = 2, nrow = 2, byrow = T) %&gt;% 
+  as_tibble()
+  # add labels and abbreviations
+  tableCS &lt;- tableCS %&gt;% 
+    add_column(c(&quot;Physical Composite Score&quot;, &quot;Mental Composite Score&quot;))
+  tableCS &lt;- tableCS %&gt;% 
+    add_column(c(&quot;PCS&quot;, &quot;MCS&quot;))
+  colnames(tableCS) &lt;- c(&quot;mean&quot;, &quot;stdDev&quot;, &quot;Scale&quot;, &quot;Abbreviation&quot;)
+  tableCS &lt;- tableCS %&gt;% select(Scale, Abbreviation, mean, stdDev)
+
+
+# add PCS and MCS to finalTable
+  finalComposite &lt;- rbind(finalTable, tableCS)
+
+  
+# set precision on mean and standard deviation columns
+  finalComposite &lt;- finalComposite %&gt;% 
+    mutate(
+      mean = round(mean, digits = 1),
+      stdDev = round(stdDev, digits = 1)
+    )
+  
+# export to excel
+  write.xlsx(finalComposite, &quot;SF36_CompositeScores.xlsx&quot;)</code></pre>
 </div>
 </div>
 <div id="references" class="section level1">
