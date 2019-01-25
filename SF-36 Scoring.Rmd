@@ -20,17 +20,15 @@ library(xlsx)
 The [SF-36](https://www.rand.org/health/surveys_tools/mos/36-item-short-form/survey-instrument.html), produced by RAND, is one of the most common instruments for measuring quality of life. It is frustrating to learn to manually score the SF-36, when it is clear that numerous researchers must be recoding the survey each time. This is my attempt to automate the administration and scoring of the SF-36.
 
 ##Google Form Version of SF-36
-Here is the [Google Form version of the SF-36](https://goo.gl/forms/DYGom6XPEv2HlANA3). I do not know how to make a downloadable file of this form I will update the link once I lean to do so.  
+Here is a [folder](https://drive.google.com/drive/folders/1W7OvdZls7Y52vpiyQKPgF1YVjpXtSNPd?usp=sharing) containing the Google Form version of the SF-36 as well as the corresponding Google Sheet containing dummy responses. Google does not allow public sharing of a Form, and this will unfortunately have to be recreated by others manually.
+
 Google forms eliminate data entry steps, make the data collection process more repeatable, and can save money on unnecessary administrative costs. Google forms are not commonly used in academia despite [commentaries encouraging the use of Google Forms in health and social sciences](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3884902/).
 
 ##Loading the SF-36 from Google Form to Excel to R
-Once data has been collected using the Google Form, download the file as an excel document. This can then be loaded into R using the [readxl](https://www.rdocumentation.org/packages/readxl/versions/0.1.1) package. 
-```{r echo = FALSE}
-#set working directory where data is located
-setwd("/Volumes/GoogleDrive/My Drive/20180528 Deported Veterans Study/SF-36/Data")
-
+Once data has been collected using the Google Form, download the file as an excel document. This can then be loaded into R using the [readxl](https://www.rdocumentation.org/packages/readxl/versions/0.1.1) package. This is dummy data made for the purposes of explanation, which was placed in the same folder as the R Markdown file.
+```{r echo = TRUE}
 #import from excel to R using readxl
-data <- read_excel("20190113_36ItemShortFormSurveyInstrument(SF-36)_Responses_Consolidated.xlsx")
+data <- read_excel("36 Item Short Form Survey Instrument (SF-36) (Responses).xlsx")
 
 #save a record of the original data for reference
 data_orig <- data
@@ -328,7 +326,7 @@ finalTable <- finalTable %>% select(Scale, Abbreviation, mean, stdDev)
 
 
 ##Comparing SF-36 Scores of Sample to US
-Use [scale scores standardized from the general US population](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3582698/) to calculate Physical Composite Score (PCS) and Mental Composite Score (MCS).
+Use [scale scores standardized from the general US population](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3582698/) to calculate Physical Composite Score (PCS) and Mental Composite Score (MCS). An excel file will be produced enumerating the 8 scale scores as well as the PCS and MCS.
 ```{r compScore}
 # import standard US general population scores of the SF-36
  SF36_GenPopUS <- read_excel("SF36_GenPopUS.xlsx", sheet = 1)
@@ -405,4 +403,13 @@ Use [scale scores standardized from the general US population](https://www.ncbi.
 
 
 #References
-Figure out how to write an endnote [bibliography](https://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html) in Rmd.
+[SF-36](https://www.rand.org/health/surveys_tools/mos/36-item-short-form/survey-instrument.html) by RAND  
+[Google Drive Folder](https://drive.google.com/drive/folders/1W7OvdZls7Y52vpiyQKPgF1YVjpXtSNPd?usp=sharing) containing SF-36 Form and Sheet Output  
+[Commentaries encouraging the use of Google Forms in health and social sciences](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3884902/)  
+[readxl](https://www.rdocumentation.org/packages/readxl/versions/0.1.1) package  
+SF-36 [Scoring Instructions](https://www.rand.org/health/surveys_tools/mos/36-item-short-form/scoring.html) by RAND  
+SF-36 Scoring Program in [SAS](https://www.rand.org/pubs/drafts/DRU1437.html) by Ron Hayes  
+SF-36 Scoring Program in [Word](https://cours.etsmtl.ca/gts813/documents/sf36_scoring_system.doc)  
+[Australian Longitudinal Study on Women's Health](https://www.alswh.org.au/)  
+[Calculating physical and mental composite scores of SF-36](http://www.alswh.org.au/images/content/pdf/InfoData/Data_Dictionary_Supplement/DDSSection2SF36.pdf)  
+[Standardize SF-36 scores to the general US population](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3582698/)  

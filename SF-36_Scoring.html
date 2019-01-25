@@ -134,17 +134,25 @@ $(document).ready(function () {
 <p>The <a href="https://www.rand.org/health/surveys_tools/mos/36-item-short-form/survey-instrument.html">SF-36</a>, produced by RAND, is one of the most common instruments for measuring quality of life. It is frustrating to learn to manually score the SF-36, when it is clear that numerous researchers must be recoding the survey each time. This is my attempt to automate the administration and scoring of the SF-36.</p>
 <div id="google-form-version-of-sf-36" class="section level2">
 <h2>Google Form Version of SF-36</h2>
-<p>Here is the <a href="https://goo.gl/forms/DYGom6XPEv2HlANA3">Google Form version of the SF-36</a>. I do not know how to make a downloadable file of this form I will update the link once I lean to do so.<br />
-Google forms eliminate data entry steps, make the data collection process more repeatable, and can save money on unnecessary administrative costs. Google forms are not commonly used in academia despite <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3884902/">commentaries encouraging the use of Google Forms in health and social sciences</a>.</p>
+<p>Here is a <a href="https://drive.google.com/drive/folders/1W7OvdZls7Y52vpiyQKPgF1YVjpXtSNPd?usp=sharing">folder</a> containing the Google Form version of the SF-36 as well as the corresponding Google Sheet containing dummy responses. Google does not allow public sharing of a Form, and this will unfortunately have to be recreated by others manually.</p>
+<p>Google forms eliminate data entry steps, make the data collection process more repeatable, and can save money on unnecessary administrative costs. Google forms are not commonly used in academia despite <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3884902/">commentaries encouraging the use of Google Forms in health and social sciences</a>.</p>
 </div>
 <div id="loading-the-sf-36-from-google-form-to-excel-to-r" class="section level2">
 <h2>Loading the SF-36 from Google Form to Excel to R</h2>
-<p>Once data has been collected using the Google Form, download the file as an excel document. This can then be loaded into R using the <a href="https://www.rdocumentation.org/packages/readxl/versions/0.1.1">readxl</a> package.</p>
-<pre><code>## Observations: 14
+<p>Once data has been collected using the Google Form, download the file as an excel document. This can then be loaded into R using the <a href="https://www.rdocumentation.org/packages/readxl/versions/0.1.1">readxl</a> package. This is dummy data made for the purposes of explanation, which was placed in the same folder as the R Markdown file.</p>
+<pre class="r"><code>#import from excel to R using readxl
+data &lt;- read_excel(&quot;36 Item Short Form Survey Instrument (SF-36) (Responses).xlsx&quot;)
+
+#save a record of the original data for reference
+data_orig &lt;- data
+
+#look at item variables and number of observations
+glimpse(data)</code></pre>
+<pre><code>## Observations: 5
 ## Variables: 39
 ## $ Timestamp                                                                                                                                                                                                                                                                                                                        &lt;dttm&gt; ...
-## $ `Participant ID`                                                                                                                                                                                                                                                                                                                 &lt;chr&gt; ...
-## $ `Interviewer ID`                                                                                                                                                                                                                                                                                                                 &lt;chr&gt; ...
+## $ `Participant ID:`                                                                                                                                                                                                                                                                                                                &lt;dbl&gt; ...
+## $ `Interviewer ID:`                                                                                                                                                                                                                                                                                                                &lt;chr&gt; ...
 ## $ `1. In general, would you say your health is:`                                                                                                                                                                                                                                                                                   &lt;chr&gt; ...
 ## $ `2. Compared to one year ago, how would you rate your health in general now?`                                                                                                                                                                                                                                                    &lt;chr&gt; ...
 ## $ `The following items are about activities you might do during a typical day. Does your health now limit you in these activities? If so, how much? [3. Vigorous activities, such as running, lifting heavy objects, participating in strenuous sports]`                                                                           &lt;chr&gt; ...
@@ -469,7 +477,7 @@ finalTable &lt;- finalTable %&gt;% select(Scale, Abbreviation, mean, stdDev)</co
 </div>
 <div id="comparing-sf-36-scores-of-sample-to-us" class="section level2">
 <h2>Comparing SF-36 Scores of Sample to US</h2>
-<p>Use <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3582698/">scale scores standardized from the general US population</a> to calculate Physical Composite Score (PCS) and Mental Composite Score (MCS).</p>
+<p>Use <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3582698/">scale scores standardized from the general US population</a> to calculate Physical Composite Score (PCS) and Mental Composite Score (MCS). An excel file will be produced enumerating the 8 scale scores as well as the PCS and MCS.</p>
 <pre class="r"><code># import standard US general population scores of the SF-36
  SF36_GenPopUS &lt;- read_excel(&quot;SF36_GenPopUS.xlsx&quot;, sheet = 1)
 
@@ -540,12 +548,21 @@ finalTable &lt;- finalTable %&gt;% select(Scale, Abbreviation, mean, stdDev)</co
     )
   
 # export to excel
-  write.xlsx(finalComposite, &quot;SF36_CompositeScores.xlsx&quot;)</code></pre>
+  write.xlsx(finalComposite, &quot;!SF36_CompositeScores.xlsx&quot;)</code></pre>
 </div>
 </div>
 <div id="references" class="section level1">
 <h1>References</h1>
-<p>Figure out how to write an endnote <a href="https://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html">bibliography</a> in Rmd.</p>
+<p><a href="https://www.rand.org/health/surveys_tools/mos/36-item-short-form/survey-instrument.html">SF-36</a> by RAND<br />
+<a href="https://drive.google.com/drive/folders/1W7OvdZls7Y52vpiyQKPgF1YVjpXtSNPd?usp=sharing">Google Drive Folder</a> containing SF-36 Form and Sheet Output<br />
+<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3884902/">Commentaries encouraging the use of Google Forms in health and social sciences</a><br />
+<a href="https://www.rdocumentation.org/packages/readxl/versions/0.1.1">readxl</a> package<br />
+SF-36 <a href="https://www.rand.org/health/surveys_tools/mos/36-item-short-form/scoring.html">Scoring Instructions</a> by RAND<br />
+SF-36 Scoring Program in <a href="https://www.rand.org/pubs/drafts/DRU1437.html">SAS</a> by Ron Hayes<br />
+SF-36 Scoring Program in <a href="https://cours.etsmtl.ca/gts813/documents/sf36_scoring_system.doc">Word</a><br />
+<a href="https://www.alswh.org.au/">Australian Longitudinal Study on Women’s Health</a><br />
+<a href="http://www.alswh.org.au/images/content/pdf/InfoData/Data_Dictionary_Supplement/DDSSection2SF36.pdf">Calculating physical and mental composite scores of SF-36</a><br />
+<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3582698/">Standardize SF-36 scores to the general US population</a></p>
 </div>
 
 
