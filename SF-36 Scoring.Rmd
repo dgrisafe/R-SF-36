@@ -14,17 +14,22 @@ library(dplyr)
 library(stringr)
 library(tidyverse)
 library(xlsx)
+library(cowplot)
+library(scales)
 ```
 
-#SF-36
+
+# SF-36
 The [SF-36](https://www.rand.org/health/surveys_tools/mos/36-item-short-form/survey-instrument.html), produced by RAND, is one of the most common instruments for measuring quality of life. It is frustrating to learn to manually score the SF-36, when it is clear that numerous researchers must be recoding the survey each time. This is my attempt to automate the administration and scoring of the SF-36.
 
-##Google Form Version of SF-36
+
+## Google Form Version of SF-36
 Here is a [folder](https://drive.google.com/drive/folders/1W7OvdZls7Y52vpiyQKPgF1YVjpXtSNPd?usp=sharing) containing the Google Form version of the SF-36 as well as the corresponding Google Sheet containing dummy responses. Google does not allow public sharing of a Form, and this will unfortunately have to be recreated by others manually.
 
 Google forms eliminate data entry steps, make the data collection process more repeatable, and can save money on unnecessary administrative costs. Google forms are not commonly used in academia despite [commentaries encouraging the use of Google Forms in health and social sciences](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3884902/).
 
-##Loading the SF-36 from Google Form to Excel to R
+
+## Loading the SF-36 from Google Form to Excel to R
 Once data has been collected using the Google Form, download the file as an excel document. This can then be loaded into R using the [readxl](https://www.rdocumentation.org/packages/readxl/versions/0.1.1) package. This is dummy data made for the purposes of explanation, which was placed in the same folder as the R Markdown file.
 ```{r echo = FALSE}
 # import from excel to R using readxl
@@ -37,8 +42,9 @@ data_orig <- data
 # glimpse(data)
 ```
 
-##Recoding the SF-36
-RAND provides [Scoring Instructions](https://www.rand.org/health/surveys_tools/mos/36-item-short-form/scoring.html). Ron Hays has published a [SAS program](https://www.rand.org/pubs/drafts/DRU1437.html) to score the SF-36 automatically; this [Word version](https://cours.etsmtl.ca/gts813/documents/sf36_scoring_system.doc) was used as a template for scoring the survey in R. All variables should be renamed and certain items must be reversed.
+
+## Recoding the SF-36
+RAND provides [Scoring Instructions](https://www.rand.org/health/surveys_tools/mos/36-item-short-form/scoring.html). Ron Hays has published a [SAS program](https://www.rand.org/pubs/drafts/DRU1437.html) to score the SF-36 automatically; this [Word version](https://cours.etsmtl.ca/gts813/documents/sf36_scoring_system.doc) was used as a template for scoring the survey in R. All variables should be renamed and certain items must be reversed. See the accomanying R Markdown file for details.
 ```{r recode, echo = FALSE}
 #rename the columns
 cols <- c("timestamp", "ptid", "intid", paste0("I", 1:36))
@@ -279,13 +285,16 @@ data0100 <- mutate(data0100,
 )
 ```
 
-##Calculating Standardized Component Scores: Physical and Mental Composites
-The [Australian Longitudinal Study on Women's Health](https://www.alswh.org.au/) provides [instructions on how to calculate the physical and mental composite scores](http://www.alswh.org.au/images/content/pdf/InfoData/Data_Dictionary_Supplement/DDSSection2SF36.pdf) of the SF-36 when all of the 8 subscales are available.
+
+## SF-36 8 Subscale Scores
+The 8 subscales of the SF-36 are calculated by taking the means of specific groups of items. Details of item groupings are available in the table on page 2 of [SF-36 scoring instructions](http://www.alswh.org.au/images/content/pdf/InfoData/Data_Dictionary_Supplement/DDSSection2SF36.pdf) by the [Australian Longitudinal Study on Women's Health](https://www.alswh.org.au/). 
 ```{r echo = FALSE}
-# make vectors of scale names and abbreviations
+# make vectors of scale names, abbreviations, number of items per subscale, and subscale weights
 SF36_scales <- c("Physical Functioning", "Role Physical", "Bodily Pain", "General Health", "Vitality", "Social Functioning", "Role Emotional", "Mental Health")
 SF36_abbrev <- c("PF", "RP", "BP", "GH", "VT", "SF", "RE", "MH")
-
+SF36_nItems <- c(10,    4,    2,    5,    4,    2,    3,    5)
+SF36_weight <- c(10/21, 4/21, 2/21, 5/21, 4/14, 2/14, 3/14, 5/14)
+  
 #select 8 SF-36 subscale scores
 subScale8 <- select(data0100, ptid,
                     PHYFUN10,ROLEP4,PAIN2,GENH5,
@@ -317,22 +326,113 @@ finalTable <- finalTable %>%
 finalTable <- finalTable %>% 
   add_column(SF36_abbrev)
 
+# add scale weights
+finalTable <- finalTable %>% 
+  add_column(SF36_weight)
+
 # name columns and reorder columns
-colnames(finalTable) <- c("mean", "stdDev", "Scale", "Abbreviation")
+colnames(finalTable) <- c("mean", "stdDev", "Scale", "Abbreviation", "weight")
 
 # formatted final table
-finalTable <- finalTable %>% select(Scale, Abbreviation, mean, stdDev)
+finalTable <- finalTable %>% select(Scale, Abbreviation, weight, mean, stdDev)
+
+
+# set precision on mean and standard deviation columns
+finalTable <- finalTable %>% 
+  mutate(
+    mean = round(mean, digits = 1),
+    stdDev = round(stdDev, digits = 1)
+  )
+  
+
+# print table in Rmd
+print("8 Subscale Scores of the SF-36, raw (i.e., not standardized)")
+finalTable
 ```
 
 
-##Comparing SF-36 Scores of Sample to US
-Use [scale scores standardized from the general US population](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3582698/) to calculate Physical Composite Score (PCS) and Mental Composite Score (MCS). An excel file will be produced enumerating the 8 scale scores as well as the PCS and MCS.
+## Comparing SF-36 Sample Scores to US Population
+Standardize the 8 subscales of the SF-36 to the [general US population](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3582698/).
 ```{r compScore, echo = FALSE}
+# make vector of standard abbreviations, and dummy missing vector of weights
+std_SF36_abbrev <- c("std_PF", "std_RP", "std_BP", "std_GH", "std_VT", "std_SF", "std_RE", "std_MH")
+
+  
 # import standard US general population scores of the SF-36
  SF36_GenPopUS <- read_excel("SF36_GenPopUS.xlsx", sheet = 1)
+  
+ 
+## calculate standardized subscale scores for each participant
+std_subScale8 <- subScale8 %>% 
+  mutate(
+    stdPF = (PF - as.numeric(SF36_GenPopUS[1,3])) / as.numeric(SF36_GenPopUS[1,5]),
+    stdRP = (RP - as.numeric(SF36_GenPopUS[2,3])) / as.numeric(SF36_GenPopUS[2,5]),
+    stdBP = (BP - as.numeric(SF36_GenPopUS[3,3])) / as.numeric(SF36_GenPopUS[3,5]),
+    stdGH = (GH - as.numeric(SF36_GenPopUS[4,3])) / as.numeric(SF36_GenPopUS[4,5]),
+    stdVT = (VT - as.numeric(SF36_GenPopUS[5,3])) / as.numeric(SF36_GenPopUS[5,5]),
+    stdSF = (SF - as.numeric(SF36_GenPopUS[6,3])) / as.numeric(SF36_GenPopUS[6,5]),
+    stdRE = (RE - as.numeric(SF36_GenPopUS[7,3])) / as.numeric(SF36_GenPopUS[7,5]),
+    stdMH = (MH - as.numeric(SF36_GenPopUS[8,3])) / as.numeric(SF36_GenPopUS[8,5])
+    )
 
+## present summary statistics of standardized scores in tibble
 
-## This produces an average PCS and MCS for the entire sample, but we need to calculate for each individual first
+  # select 8 SF-36 subscale scores
+  std_subScale8 <- select(std_subScale8, ptid,
+                      stdPF,stdRP,stdBP,stdGH,
+                      stdVT,stdSF,stdRE,stdMH)
+  
+  #  get means and standard deviations of standardized subscales
+  std_sumScale8 <- summarize(std_subScale8, 
+            meanstdPF = mean(stdPF), sdPF = sd(stdPF),
+            meanstdRP = mean(stdRP), sdRP = sd(stdRP),
+            meanstdBP = mean(stdBP), sdBP = sd(stdBP),
+            meanstdGH = mean(stdGH), sdGH = sd(stdGH),
+            meanstdVT = mean(stdVT), sdVT = sd(stdVT),
+            meanstdSF = mean(stdSF), sdSF = sd(stdSF),
+            meanstdRE = mean(stdRE), sdRE = sd(stdRE),
+            meanstdMH = mean(stdMH), sdMH = sd(stdMH)
+            )
+  
+  # make this into a tibble of each subscale (rows) by statistics mean and sd. Figure out naming
+  std_finalTable <- as.numeric(std_sumScale8[1,]) %>% 
+    matrix(ncol = 2, nrow = 8, byrow = T) %>% 
+    as_tibble()
+  
+  # add subscale names
+  std_finalTable <- std_finalTable %>% 
+    add_column(SF36_scales)
+  
+  # add subscale abbreviations
+  std_finalTable <- std_finalTable %>% 
+    add_column(std_SF36_abbrev)
+  
+  # add subscale weights
+  std_finalTable <- std_finalTable %>% 
+    add_column(SF36_weight)
+
+  # name columns and reorder columns
+  colnames(std_finalTable) <- c("mean", "stdDev", "Scale", "Abbreviation", "weight")
+  
+  # formatted final table
+  std_finalTable <- std_finalTable %>% select(Scale, Abbreviation, weight, mean, stdDev)
+  
+  # set precision on mean and standard deviation columns
+  std_finalTable <- std_finalTable %>% 
+    mutate(
+      mean = round(mean, digits = 1),
+      stdDev = round(stdDev, digits = 1)
+    )
+
+  # print table in Rmd
+  print("8 subscales of the SF-36 Standardized to General US Population")
+  std_finalTable
+```
+
+## Calculating Standardized Component Scores: Physical and Mental Composites
+The [Australian Longitudinal Study on Women's Health](https://www.alswh.org.au/) provides [instructions on how to calculate the physical and mental composite scores](http://www.alswh.org.au/images/content/pdf/InfoData/Data_Dictionary_Supplement/DDSSection2SF36.pdf) of the SF-36 when all of the 8 subscales are available.
+```{r echo = FALSE}
+## Calculate an average PCS and MCS for the entire sample, but we need to calculate for each individual first
   
   # select only the 8 subscales from the Gen US Population SF-36 data
   SF36_8Scales <- SF36_GenPopUS %>% slice(1:8)
@@ -342,34 +442,26 @@ Use [scale scores standardized from the general US population](https://www.ncbi.
     mutate(stdScale = (mean - SF36_8Scales$Mean)/SF36_8Scales$SD)
   
   # calculate the PCS and MCS
-  PCS <- finalCSTable %>% slice(1:4) %>% summarize(sum(stdScale) * 10 + 50) %>% as.numeric()
-  MCS <- finalCSTable %>% slice(5:8) %>% summarize(sum(stdScale) * 10 + 50) %>% as.numeric()
+  PCS <- finalCSTable %>% 
+    slice(1:4) %>% 
+    summarize(sum(weight * stdScale) * 10 + 50) %>% 
+    as.numeric()
+  MCS <- finalCSTable %>% 
+    slice(5:8) %>% 
+    summarize(sum(weight * stdScale) * 10 + 50) %>% 
+    as.numeric()
   
-  
+
 ## Calculate PCS and MCS for each individual
 
-  # calculate standardized scores for each participant
-  std_subScale8 <- subScale8 %>% 
-    mutate(
-      stdPF = (PF - as.numeric(SF36_GenPopUS[1,3])) / as.numeric(SF36_GenPopUS[1,5]),
-      stdRP = (RP - as.numeric(SF36_GenPopUS[2,3])) / as.numeric(SF36_GenPopUS[2,5]),
-      stdBP = (BP - as.numeric(SF36_GenPopUS[3,3])) / as.numeric(SF36_GenPopUS[3,5]),
-      stdGH = (GH - as.numeric(SF36_GenPopUS[4,3])) / as.numeric(SF36_GenPopUS[4,5]),
-      stdVT = (VT - as.numeric(SF36_GenPopUS[5,3])) / as.numeric(SF36_GenPopUS[5,5]),
-      stdSF = (SF - as.numeric(SF36_GenPopUS[6,3])) / as.numeric(SF36_GenPopUS[6,5]),
-      stdRE = (RE - as.numeric(SF36_GenPopUS[7,3])) / as.numeric(SF36_GenPopUS[7,5]),
-      stdMH = (MH - as.numeric(SF36_GenPopUS[8,3])) / as.numeric(SF36_GenPopUS[8,5])
-      )
-
-  # calculate PCS and MCS for each participant
+  #   The weights are the amount of items per subscale divided by all items (n = 21 for PCS; n = 14 for MCS)
   std_subScale8 <- std_subScale8 %>% 
     mutate(
-      PCS = (stdPF + stdRP + stdBP + stdGH) * 10 + 50,
-      MCS = (stdVT + stdSF + stdRE + stdMH) * 10 + 50
+      PCS = (10/21*stdPF + 4/21*stdRP + 2/21*stdBP + 5/21*stdGH) * 10 + 50,
+      MCS = ( 4/14*stdVT + 2/14*stdSF + 3/14*stdRE + 5/14*stdMH) * 10 + 50
     )
   
-  
-# calculate PCS and MCS averages for all participants
+# calculate PCS and MCS summary statistics for all participants
   tableCS <- std_subScale8 %>% summarize(
     meanPCS = mean(PCS), sdPCS = sd(PCS),
     meanMCS = mean(MCS), sdMCS = sd(MCS)
@@ -377,28 +469,65 @@ Use [scale scores standardized from the general US population](https://www.ncbi.
   tableCS <- as.numeric(tableCS[1,]) %>% 
   matrix(ncol = 2, nrow = 2, byrow = T) %>% 
   as_tibble()
-  # add labels and abbreviations
+  
+  # add subscale labels
   tableCS <- tableCS %>% 
     add_column(c("Physical Composite Score", "Mental Composite Score"))
+  
+  # add subscale abbreviations
   tableCS <- tableCS %>% 
     add_column(c("PCS", "MCS"))
+  
   colnames(tableCS) <- c("mean", "stdDev", "Scale", "Abbreviation")
   tableCS <- tableCS %>% select(Scale, Abbreviation, mean, stdDev)
 
-
-# add PCS and MCS to finalTable
-  finalComposite <- rbind(finalTable, tableCS)
-
   
 # set precision on mean and standard deviation columns
-  finalComposite <- finalComposite %>% 
-    mutate(
-      mean = round(mean, digits = 1),
-      stdDev = round(stdDev, digits = 1)
-    )
+tableCS <- tableCS %>% 
+  mutate(
+    mean = round(mean, digits = 1),
+    stdDev = round(stdDev, digits = 1)
+  )
   
+
+# print table in Rmd
+print("Physical and Mental Composite Scores of the SF-36 Standardized to General US Population")
+tableCS
+```
+
+## Export the 8 Subscales, Standardized Subscales, and Composite Scores of the SF-36 to Excel
+An excel file will be produced enumerating the 8 scale scores both raw and standardized to the general US population, as well as the PCS and MCS.
+```{r}
 # export to excel
-  write.xlsx(finalComposite, "!SF36_CompositeScores.xlsx")
+write.xlsx(tableCS,         "!SF36_CompositeScores.xlsx", sheetName="Composite Scores")
+write.xlsx(std_finalTable,  "!SF36_CompositeScores.xlsx", sheetName="Subscales Stdz Gen US Pop", append=TRUE)
+write.xlsx(finalTable,      "!SF36_CompositeScores.xlsx", sheetName="Subscales Raw", append=TRUE)
+```
+
+
+## Distributions of Physical and Mental Composite Scores
+Look at the distributions of PCS and MCS in the sample.
+```{r echo = FALSE}
+
+# Use individual PCS and MCS scores to show the distribution of each composite
+
+  # Physical composite score (PCS)
+  std_subScale8 %>% ggplot(aes(x = PCS)) + 
+    geom_histogram(aes(y = ..count.. / sum(..count..)), binwidth = 5) +
+    scale_y_continuous(labels = percent_format(), limits = c(0,1)) +
+    scale_x_continuous(limits = c(0,100)) +
+    ggtitle("Physical Composite Scores of the SF-36") +
+    ylab("Percent of Total Participants") +
+    xlab("Physical Composite Score (PCS)")
+
+  # Mental composite score (MCS)
+  std_subScale8 %>% ggplot(aes(x = MCS)) + 
+    geom_histogram(aes(y = ..count.. / sum(..count..)), binwidth = 5) +
+    scale_y_continuous(labels = percent_format(), limits = c(0,1)) +
+    scale_x_continuous(limits = c(0,100)) +
+    ggtitle("Mental Composite Scores of the SF-36") +
+    ylab("Percent of Total Participants") +
+    xlab("Mental Composite Score (MCS)")
 ```
 
 
