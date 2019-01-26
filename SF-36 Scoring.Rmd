@@ -19,7 +19,7 @@ library(scales)
 ```
 
 
-# SF-36
+# 36-Item Short Form Health Survey (SF-36)
 The [SF-36](https://www.rand.org/health/surveys_tools/mos/36-item-short-form/survey-instrument.html), produced by RAND, is one of the most common instruments for measuring quality of life. It is frustrating to learn to manually score the SF-36, when it is clear that numerous researchers must be recoding the survey each time. This is my attempt to automate the administration and scoring of the SF-36.
 
 
@@ -300,14 +300,14 @@ subScale8 <- select(data0100, ptid,
                     PHYFUN10,ROLEP4,PAIN2,GENH5,
                     ENFAT4,SOCFUN2,ROLEE3,EMOT5)
 sumScale8 <- summarize(subScale8, 
-          meanPF = mean(PHYFUN10), sdPF = sd(PHYFUN10),
-          meanRP = mean(ROLEP4), sdRP = sd(ROLEP4),
-          meanBP = mean(PAIN2), sdBP = sd(PAIN2),
-          meanGH = mean(GENH5), sdGH = sd(GENH5),
-          meanVT = mean(ENFAT4), sdVT = sd(ENFAT4),
-          meanSF = mean(SOCFUN2), sdSF = sd(SOCFUN2),
-          meanRE = mean(ROLEE3), sdRE = sd(ROLEE3),
-          meanMH = mean(EMOT5), sdMH = sd(EMOT5)
+          meanPF = mean(PHYFUN10), sdPF = sd(PHYFUN10), sePF = sd(PHYFUN10)/sqrt(n()),
+          meanRP = mean(ROLEP4), sdRP = sd(ROLEP4), seRP = sd(ROLEP4)/sqrt(n()),
+          meanBP = mean(PAIN2), sdBP = sd(PAIN2), seBP = sd(PAIN2)/sqrt(n()),
+          meanGH = mean(GENH5), sdGH = sd(GENH5), seGH = sd(GENH5)/sqrt(n()),
+          meanVT = mean(ENFAT4), sdVT = sd(ENFAT4), seVT = sd(ENFAT4)/sqrt(n()),
+          meanSF = mean(SOCFUN2), sdSF = sd(SOCFUN2), seSF = sd(SOCFUN2)/sqrt(n()),
+          meanRE = mean(ROLEE3), sdRE = sd(ROLEE3), seRE = sd(ROLEE3)/sqrt(n()),
+          meanMH = mean(EMOT5), sdMH = sd(EMOT5), seMH = sd(EMOT5)/sqrt(n())
           )
 
 # set subscale column names to abbreviations
@@ -315,7 +315,7 @@ colnames(subScale8) <- c("ptid", SF36_abbrev)
 
 # make this into a tibble of each subscale (rows) by statistics mean and sd. Figure out naming
 finalTable <- as.numeric(sumScale8[1,]) %>% 
-  matrix(ncol = 2, nrow = 8, byrow = T) %>% 
+  matrix(ncol = 3, nrow = 8, byrow = T) %>% 
   as_tibble()
 
 # add scale names
@@ -331,10 +331,10 @@ finalTable <- finalTable %>%
   add_column(SF36_weight)
 
 # name columns and reorder columns
-colnames(finalTable) <- c("mean", "stdDev", "Scale", "Abbreviation", "weight")
+colnames(finalTable) <- c("mean", "stdDev", "stdErr", "Scale", "Abbreviation", "weight")
 
 # formatted final table
-finalTable <- finalTable %>% select(Scale, Abbreviation, weight, mean, stdDev)
+finalTable <- finalTable %>% select(Scale, Abbreviation, weight, mean, stdErr, stdDev)
 
 
 # set precision on mean and standard deviation columns
@@ -384,19 +384,19 @@ std_subScale8 <- subScale8 %>%
   
   #  get means and standard deviations of standardized subscales
   std_sumScale8 <- summarize(std_subScale8, 
-            meanstdPF = mean(stdPF), sdPF = sd(stdPF),
-            meanstdRP = mean(stdRP), sdRP = sd(stdRP),
-            meanstdBP = mean(stdBP), sdBP = sd(stdBP),
-            meanstdGH = mean(stdGH), sdGH = sd(stdGH),
-            meanstdVT = mean(stdVT), sdVT = sd(stdVT),
-            meanstdSF = mean(stdSF), sdSF = sd(stdSF),
-            meanstdRE = mean(stdRE), sdRE = sd(stdRE),
-            meanstdMH = mean(stdMH), sdMH = sd(stdMH)
+            meanstdPF = mean(stdPF), sdstdPF = sd(stdPF), sestdPF = sd(stdPF)/sqrt(n()),
+            meanstdRP = mean(stdRP), sdstdRP = sd(stdRP), sestdRP = sd(stdRP)/sqrt(n()),
+            meanstdBP = mean(stdBP), sdstdBP = sd(stdBP), sestdBP = sd(stdBP)/sqrt(n()),
+            meanstdGH = mean(stdGH), sdstdGH = sd(stdGH), sestdGH = sd(stdGH)/sqrt(n()),
+            meanstdVT = mean(stdVT), sdstdVT = sd(stdVT), sestdVT = sd(stdVT)/sqrt(n()),
+            meanstdSF = mean(stdSF), sdstdSF = sd(stdSF), sestdSF = sd(stdSF)/sqrt(n()),
+            meanstdRE = mean(stdRE), sdstdRE = sd(stdRE), sestdRE = sd(stdRE)/sqrt(n()),
+            meanstdMH = mean(stdMH), sdstdMH = sd(stdMH), sestdMH = sd(stdMH)/sqrt(n())
             )
   
   # make this into a tibble of each subscale (rows) by statistics mean and sd. Figure out naming
   std_finalTable <- as.numeric(std_sumScale8[1,]) %>% 
-    matrix(ncol = 2, nrow = 8, byrow = T) %>% 
+    matrix(ncol = 3, nrow = 8, byrow = T) %>% 
     as_tibble()
   
   # add subscale names
@@ -412,10 +412,10 @@ std_subScale8 <- subScale8 %>%
     add_column(SF36_weight)
 
   # name columns and reorder columns
-  colnames(std_finalTable) <- c("mean", "stdDev", "Scale", "Abbreviation", "weight")
+  colnames(std_finalTable) <- c("mean", "stdDev", "stdErr", "Scale", "Abbreviation", "weight")
   
   # formatted final table
-  std_finalTable <- std_finalTable %>% select(Scale, Abbreviation, weight, mean, stdDev)
+  std_finalTable <- std_finalTable %>% select(Scale, Abbreviation, weight, mean, stdErr, stdDev)
   
   # set precision on mean and standard deviation columns
   std_finalTable <- std_finalTable %>% 
@@ -463,11 +463,11 @@ The [Australian Longitudinal Study on Women's Health](https://www.alswh.org.au/)
   
 # calculate PCS and MCS summary statistics for all participants
   tableCS <- std_subScale8 %>% summarize(
-    meanPCS = mean(PCS), sdPCS = sd(PCS),
-    meanMCS = mean(MCS), sdMCS = sd(MCS)
+    meanPCS = mean(PCS), sdPCS = sd(PCS), sestdPCS = sd(PCS)/sqrt(n()),
+    meanMCS = mean(MCS), sdMCS = sd(MCS), sestdMCS = sd(MCS)/sqrt(n())
   )
   tableCS <- as.numeric(tableCS[1,]) %>% 
-  matrix(ncol = 2, nrow = 2, byrow = T) %>% 
+  matrix(ncol = 3, nrow = 2, byrow = T) %>% 
   as_tibble()
   
   # add subscale labels
@@ -478,8 +478,8 @@ The [Australian Longitudinal Study on Women's Health](https://www.alswh.org.au/)
   tableCS <- tableCS %>% 
     add_column(c("PCS", "MCS"))
   
-  colnames(tableCS) <- c("mean", "stdDev", "Scale", "Abbreviation")
-  tableCS <- tableCS %>% select(Scale, Abbreviation, mean, stdDev)
+  colnames(tableCS) <- c("mean", "stdDev", "stdErr", "Scale", "Abbreviation")
+  tableCS <- tableCS %>% select(Scale, Abbreviation, mean, stdErr, stdDev)
 
   
 # set precision on mean and standard deviation columns
@@ -530,6 +530,76 @@ Look at the distributions of PCS and MCS in the sample.
     xlab("Mental Composite Score (MCS)")
 ```
 
+## Visually Compare the SF-36 of the Sample and General US Population
+Visualize the mean and standard deviation of the 8 subscales in the sample and compare to the [general US population](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3582698/).
+```{r echo = FALSE}
+# sample US population SF-36 subscales
+sample_SF36 <- finalTable %>% 
+  select(Scale, Abbreviation, mean, stdErr, stdDev) %>% 
+  rbind(tableCS) %>% 
+  rename(Mean = mean, SE = stdErr, SD = stdDev) %>% 
+  add_column(Population = 0)
+
+# vector containing all scales and composites names
+scaleCompNames <- c(SF36_scales,"Physical Composite Score","Mental Composite Score")
+
+# general US population SF-36 subscales
+genUS_SF36 <- SF36_GenPopUS %>% 
+  select(Scale, Mean, SE, SD) %>% 
+  rename(Abbreviation = Scale) %>% 
+  add_column(Scale = scaleCompNames) %>% 
+  select(Scale, Abbreviation, Mean, SE, SD) %>% 
+  add_column(Population = 1)
+
+# merge sample and general US population data of 8 subscales
+sampleUSCompare <- rbind(sample_SF36, genUS_SF36)
+
+# make Scale variable factor to conserve order
+sampleUSCompare$Scale <- sampleUSCompare$Scale %>% 
+  factor(ordered = TRUE, levels = scaleCompNames)
+
+# make Population variable factor to group by
+sampleUSCompare$Population <- factor(sampleUSCompare$Population, labels = c("Sample", "General US"))
+
+# composite scores of SF-36
+sampleUSCompare %>% 
+  filter(Abbreviation %in% c("PCS", "MCS")) %>% 
+  ggplot(aes(x = Population, y = Mean, color = Population)) +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), width = .2) +
+  scale_y_continuous(limits = c(20,80)) +
+  geom_point() +
+  facet_wrap( ~ Scale, nrow = 1) +
+  theme(legend.position = "none") +
+  ggtitle("SF-36 Composite Scores of Sample Compared to US Population") +
+  ylab("Average Composite Score (SE Bars)") +
+  xlab("Population")
+
+# physical Subscales of SF-36
+sampleUSCompare %>% 
+  filter(Abbreviation %in% c("PF", "RP", "BP", "GH")) %>% 
+  ggplot(aes(x = Population, y = Mean, color = Population)) +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), width = .2) +
+  scale_y_continuous(limits = c(20,80)) +
+  geom_point() +
+  facet_wrap(Scale ~ ., nrow = 2) +
+  theme(legend.position ="none") +
+  ggtitle("SF-36 Physical Subscales of Sample Compared to US Population") +
+  ylab("Average Subscale Score (SE Bars)") +
+  xlab("Population")
+
+# mental Subscales of SF-36
+sampleUSCompare %>% 
+  filter(Abbreviation %in% c("VT", "SF", "RE", "MH")) %>% 
+  ggplot(aes(x = Population, y = Mean, color = Population)) +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), width = .2) +
+  scale_y_continuous(limits = c(20,80)) +
+  geom_point() +
+  facet_wrap(Scale ~ ., nrow = 2) +
+  theme(legend.position="none") +
+  ggtitle("SF-36 Mental Subscales of Sample Compared to US Population") +
+  ylab("Average Subscale Score (SE Bars)") +
+  xlab("Population")
+```
 
 #References
 [SF-36](https://www.rand.org/health/surveys_tools/mos/36-item-short-form/survey-instrument.html) by RAND  
