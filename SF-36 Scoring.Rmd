@@ -26,6 +26,8 @@ The [SF-36](https://www.rand.org/health/surveys_tools/mos/36-item-short-form/sur
 ## Google Form Version of SF-36
 Here is a [folder](https://drive.google.com/drive/folders/1W7OvdZls7Y52vpiyQKPgF1YVjpXtSNPd?usp=sharing) containing the Google Form version of the SF-36 as well as the corresponding Google Sheet containing dummy responses. Google does not allow public sharing of a Form, and this will unfortunately have to be recreated by others manually.
 
+**Update 2/15/19**: [this blog post](https://alicekeeler.com/2017/01/02/5-steps-sharing-copy-google-form/) explains how to share google forms publically. Update the text with a link to a [copy of the google form](https://docs.google.com/forms/u/1/d/1mYmifmCML12KZZBLYObyPyn9PGGi2IGQwBRCcGpwCuI/copy).
+
 Google forms eliminate data entry steps, make the data collection process more repeatable, and can save money on unnecessary administrative costs. Google forms are not commonly used in academia despite [commentaries encouraging the use of Google Forms in health and social sciences](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3884902/).
 
 
@@ -453,23 +455,27 @@ The [Australian Longitudinal Study on Women's Health](https://www.alswh.org.au/)
 # calculate summary statistics for all participants
   tableCS <- std_subScale8 %>% summarize(
     
-    # non-standardized, original subscales scores
-    meanPF = mean(PF), sdPF = sd(PF), sePF = sd(PF)/sqrt(n()),
-    meanRP = mean(RP), sdRP = sd(RP), seRP = sd(RP)/sqrt(n()),
-    meanBP = mean(BP), sdBP = sd(BP), seBP = sd(BP)/sqrt(n()),
-    meanGH = mean(GH), sdGH = sd(GH), seGH = sd(GH)/sqrt(n()),
-    meanVT = mean(VT), sdVT = sd(VT), seVT = sd(VT)/sqrt(n()),
-    meanSF = mean(SF), sdSF = sd(SF), seSF = sd(SF)/sqrt(n()),
-    meanRE = mean(RE), sdRE = sd(RE), seRE = sd(RE)/sqrt(n()),
-    meanMH = mean(MH), sdMH = sd(MH), seMH = sd(MH)/sqrt(n()),
+    # number of observations
+    
+    
+    # number of observations, non-standardized, original subscales scores
+    nPF = sum(!is.na(PF)), meanPF = mean(PF), sdPF = sd(PF), sePF = sd(PF)/sqrt(n()),
+    nRP = sum(!is.na(RP)), meanRP = mean(RP), sdRP = sd(RP), seRP = sd(RP)/sqrt(n()),
+    nBP = sum(!is.na(BP)), meanBP = mean(BP), sdBP = sd(BP), seBP = sd(BP)/sqrt(n()),
+    nGH = sum(!is.na(GH)), meanGH = mean(GH), sdGH = sd(GH), seGH = sd(GH)/sqrt(n()),
+    nVT = sum(!is.na(VT)), meanVT = mean(VT), sdVT = sd(VT), seVT = sd(VT)/sqrt(n()),
+    nSF = sum(!is.na(SF)), meanSF = mean(SF), sdSF = sd(SF), seSF = sd(SF)/sqrt(n()),
+    nRE = sum(!is.na(RE)), meanRE = mean(RE), sdRE = sd(RE), seRE = sd(RE)/sqrt(n()),
+    nMH = sum(!is.na(MH)), meanMH = mean(MH), sdMH = sd(MH), seMH = sd(MH)/sqrt(n()),
     
     # composite scores, standardized to general US population
-    meanPCS = mean(PCS), sdPCS = sd(PCS), sestdPCS = sd(PCS)/sqrt(n()),
-    meanMCS = mean(MCS), sdMCS = sd(MCS), sestdMCS = sd(MCS)/sqrt(n())
+    nPCS = sum(!is.na(PCS)), meanPCS = mean(PCS), sdPCS = sd(PCS), sestdPCS = sd(PCS)/sqrt(n()),
+    nMCS = sum(!is.na(MCS)), meanMCS = mean(MCS), sdMCS = sd(MCS), sestdMCS = sd(MCS)/sqrt(n())
     
   )
+  
   tableCS <- as.numeric(tableCS[1,]) %>% 
-  matrix(ncol = 3, nrow = 10, byrow = T) %>% 
+  matrix(ncol = 4, nrow = 10, byrow = T) %>% 
   as_tibble()
   
   # add subscale labels
@@ -484,9 +490,9 @@ The [Australian Longitudinal Study on Women's Health](https://www.alswh.org.au/)
       SF36_abbrev,
       "PCS", "MCS"))
   
-  colnames(tableCS) <- c("mean", "stdDev", "stdErr", "Scale", "Abbreviation")
+  colnames(tableCS) <- c("n", "mean", "stdDev", "stdErr", "Scale", "Abbreviation")
   tableCS <- tableCS %>% 
-    select(Scale, Abbreviation, mean, stdErr, stdDev) %>% 
+    select(Scale, n, Abbreviation, mean, stdErr, stdDev) %>% 
     rename(Mean = mean, SE = stdErr, SD = stdDev)
 
 
@@ -512,10 +518,10 @@ tableCS
   
   # general US population SF-36 subscales
   genUS_SF36 <- SF36_GenPopUS %>% 
-    select(Scale, Mean, SE, SD) %>% 
+    select(Scale, n, Mean, SE, SD) %>% 
     rename(Abbreviation = Scale) %>% 
     add_column(Scale = scaleCompNames) %>% 
-    select(Scale, Abbreviation, Mean, SE, SD) %>% 
+    select(Scale, n, Abbreviation, Mean, SE, SD) %>% 
     add_column(Population = 1)
   
   # merge sample and general US population data of 8 subscales
@@ -526,7 +532,10 @@ tableCS
     factor(ordered = TRUE, levels = scaleCompNames)
   
   # make Population variable factor to group by
-  sampleUSCompare$Population <- factor(sampleUSCompare$Population, labels = c("Sample", "General US"))
+  sampleUSCompare$Population <- factor(sampleUSCompare$Population, 
+                                       levels = c(0, 1),
+                                       labels = c("Sample", "General US")
+                                       )
 ```
 
 ## Export the 8 Subscales, Standardized Subscales, and Composite Scores of the SF-36 to Excel
